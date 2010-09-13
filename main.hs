@@ -4,11 +4,12 @@ module Main (main) where
 
 import System.IO
 import Data.List
+import Data.Char
 
 import Chess
 
 main = do
-	putStrLn $ show $ [Just (Piece White Rook), Just (Piece Black Queen), Nothing] 
+	putStrLn $ show $ initialBoard	
 	
 	
 -- show instances
@@ -22,12 +23,16 @@ instance Show Kind where
 	show Pawn = "P"
 	
 instance Show Piece where	
-	show (Piece color kind) = show kind
+	show (Piece White kind) = show kind
+	show (Piece Black kind) = map toLower $ show kind
+											   
 	
 instance Show Line where
-	show line = concat . intersperse ", " . map showSquare line
+	show (Line pieces) = concat $ map showPiece pieces
 					where 
-						showSquare Nothing = " "
-						showSquare (Just p) = show p
+						showPiece Nothing = "."
+						showPiece (Just p) = show p
 					
-	
+
+instance Show Board where
+	show (Board lines) = intercalate "\n" $ map show $ reverse lines
