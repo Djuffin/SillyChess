@@ -1,8 +1,13 @@
-module FEN where
+module FEN (renderFEN, readFEN) where
 
 import Data.List
 import Data.Char
 import Data.Maybe
+
+--import Text.Regex.Posix
+import Text.ParserCombinators.Parsec
+import Control.Monad
+
 
 import Chess
 
@@ -34,3 +39,21 @@ renderFEN (Position (Board lines) nextToMove whiteCastling blackCastling enPassa
 readFEN :: String -> Maybe Position
 readFEN fen = let parts = words fen
 				in Nothing
+	
+
+p_line :: CharParser () Chess.Line
+p_line = do 
+			pieces <- manyTill p_piece (try $ (char '/' <|> space))
+			return (Chess.Line pieces)		
+			
+p_piece :: CharParser () (Maybe Chess.Piece)
+p_piece = do 
+			ch <- oneOf "KQRBNPkqrbnp"
+			let piece = lookup ch [('K', (Piece White King)), ('Q', (Piece White Queen)), ('R', (Piece White Rook)), ('B', (Piece White Bishop)), ('N', (Piece White Knight)), ('P', (Piece White Pawn)), 
+									('k', (Piece Black King)), ('q', (Piece Black Queen)), ('r', (Piece Black Rook)), ('b', (Piece Black Bishop)), ('n', (Piece Black Knight)), ('p', (Piece Black Pawn))] 
+			return $ piece
+		
+
+	
+p_int :: CharParser () Int
+p_int = (liftM read) $ many1 digit
