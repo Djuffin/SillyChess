@@ -20,7 +20,7 @@ data Line = Line [Maybe Piece]
 data Board = Board [Line] -- rows from 1 to 8
 
 data Castling = NoCastling | QueenCastling | KingCastling | BothCastling
-				deriving (Eq)
+				deriving (Eq, Show)
 
 data Position = Position {
 					board :: Board,
