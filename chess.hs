@@ -16,8 +16,10 @@ data Piece = Piece Color Kind
 type Square	= (Int, Int) -- row, column (from zero)
 
 data Line = Line [Maybe Piece]				
+				deriving (Eq)
 
 data Board = Board [Line] -- rows from 1 to 8
+				deriving (Eq)
 
 data Castling = NoCastling | QueenCastling | KingCastling | BothCastling
 				deriving (Eq, Show)
@@ -31,6 +33,7 @@ data Position = Position {
 					halfMovesSinceAction :: Int,
 					fullMoves :: Int
 				}
+				deriving (Eq)
 
 getPieceOfLine :: Line -> Int -> Maybe Piece
 getPieceOfLine (Line pieces) n = pieces !! n
@@ -51,8 +54,6 @@ initialBoard = Board [
 
 initialPosition = Position initialBoard White BothCastling BothCastling Nothing 0 1
 
-
-				
 				
 
 				

@@ -32,7 +32,7 @@ renderFEN (Position (Board lines) nextToMove whiteCastling blackCastling enPassa
 				renderOneCastling castling = fromJust $ lookup castling [(BothCastling ,"KQ"), (KingCastling, "K"), (QueenCastling, "Q"), (NoCastling, "")]
 				renderEnPass Nothing = "-" 
 				renderEnPass (Just sq) = renderSquere sq
-				renderSquere (row, column) = (['a' .. 'h'] !! column) : (show $ 1 + column)
+				renderSquere (row, column) = (['a' .. 'h'] !! column) : (show $ 1 + row)
 				halfMoveStr = show halfMovesSinceAction
 				movesStr = show fullMoves
 				
