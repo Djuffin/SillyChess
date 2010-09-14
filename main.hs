@@ -8,6 +8,7 @@ import Data.Char
 import Data.Maybe
 
 import Chess
+import FEN
 
 main = do
 	putStrLn $ renderFEN $ initialPosition	
