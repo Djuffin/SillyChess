@@ -17,8 +17,6 @@ main = do
 	let t1 = renderFEN p1
 	let p2 = fromJust $ readFEN t1
 	let t2 = renderFEN p2
-	putStrLn $ show p1
-	putStrLn t1
 	putStrLn $ show p2
 	putStrLn t2
 
