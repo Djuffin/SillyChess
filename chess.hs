@@ -47,6 +47,7 @@ initialBoard = Board [
 				]
 
 initialPosition = Position initialBoard White BothCastling BothCastling Nothing 0 1
+allSquares = [(i,j) | i <- [0,7], j <- [0..7]]
 
 data Move = Move {
 				from :: Square,
@@ -58,6 +59,9 @@ data Move = Move {
 
 			
 ---------------- functions ----------------
+
+inverseColor White = Black
+inverseColor Black = White
 
 getPieceOfLine :: Line -> Int -> Maybe Piece
 getPieceOfLine (Line pieces) n = pieces !! n
@@ -71,49 +75,106 @@ isInBoard (row, column) = and [row > 0, column > 0, row < 8, column < 8]
 isOccupied :: Board -> Square -> Bool
 isOccupied board  = isJust . (getPieceOfBoard board)
 
+canBeKilldBy :: Board -> Square -> Color -> Bool
+canBeKilldBy b sq killerColor = case getPieceOfBoard b sq of
+						Just killerColor -> False
+						Nothing -> False
+						otherwise -> True
 
-pieceMovesGenerator :: Piece -> Square -> [[Square]]
 
-pieceMovesGenerator (Piece White Pawn) (row, column) = 
-	if row == 1 then [[(2, column), (3, column)]]
-				else [[(row + 1, column)]]
-pieceMovesGenerator (Piece Black Pawn) (row, column) = 
-	if row == 6 then [[(5, column), (4, column)]]
-				else [[(row - 1, column)]]
+pieceMovesGenerator :: Kind -> Square -> [[Square]]
+
+pieceMovesGenerator Pawn (row, column) = undefined -- this function is not intended for pawns
 				
-pieceMovesGenerator (Piece _ King) (row, column) = [[(row, column + 1)], [(row + 1, column + 1)], [(row + 1, column)], [(row + 1, column - 1)], 
+pieceMovesGenerator King (row, column) = [[(row, column + 1)], [(row + 1, column + 1)], [(row + 1, column)], [(row + 1, column - 1)], 
 	[(row, column - 1)], [(row - 1, column - 1)], [(row - 1, column)], [(row - 1, column + 1)]]
 
-pieceMovesGenerator (Piece _ Knight) (row, column) = [[(row + 1, column + 2)], [(row - 1, column + 2)], [(row + 2, column + 1)], [(row - 2, column + 1)],
+pieceMovesGenerator Knight (row, column) = [[(row + 1, column + 2)], [(row - 1, column + 2)], [(row + 2, column + 1)], [(row - 2, column + 1)],
 	[(row + 1, column - 2)], [(row - 1, column - 2)], [(row + 2, column - 1)], [(row - 2, column - 1)]]
 	
-pieceMovesGenerator (Piece _ Bishop) (row, column) = [ 
+pieceMovesGenerator Bishop (row, column) = [ 
 	map (\n -> (row + n, column + n)) [1..],
 	map (\n -> (row - n, column + n)) [1..],
 	map (\n -> (row - n, column - n)) [1..],
 	map (\n -> (row + n, column - n)) [1..]]
 	
-pieceMovesGenerator (Piece _ Rook) (row, column) = [ 
+pieceMovesGenerator Rook (row, column) = [ 
 	map (\n -> (row + n, column)) [1..],
 	map (\n -> (row - n, column)) [1..],
 	map (\n -> (row, column + n)) [1..],
 	map (\n -> (row, column - n)) [1..]]
 	
-pieceMovesGenerator (Piece color Queen) sq = pieceMovesGenerator (Piece color Bishop) sq ++ pieceMovesGenerator (Piece color Rook) sq
+pieceMovesGenerator Queen sq = pieceMovesGenerator Bishop sq ++ pieceMovesGenerator Rook sq
 
-pawnKillsGenerator :: Piece -> Square -> [Square]
-pawnKillsGenerator (Piece White Pawn) (row, column) = [(row + 1, column + 1), (row + 1, column - 1)]
-pawnKillsGenerator (Piece Black Pawn) (row, column) = [(row - 1, column + 1), (row - 1, column - 1)]
 
+filterMoves :: Board -> Color -> [[Square]] -> [Square]
+filterMoves b colorToMove movesLists = moves ++ kills
+	where (moves, kills) = filterMovesAndKills b colorToMove movesLists
+
+filterMovesAndKills :: Board -> Color -> [[Square]] -> ([Square], [Square])
+filterMovesAndKills b colorToMove movesLists = foldl filterAndMerge ([],[]) movesLists
+	where 
+		filterAndMerge (moves1, kills1) squares = (moves1 ++ moves2, kills1 ++ kills2)
+			where (moves2, kills2) = filterMovesAndKills squares
+		filterMovesAndKills squares = (moves, kills)
+			where 
+				(moves, rest) = span isMoveToEmpty squares
+				(kills, _) = span isKill rest
+				isMoveToEmpty s = isInBoard s && (not $ isOccupied b s)
+				isKill s = isInBoard s && (canBeKilldBy b s colorToMove)
+
+getPawnMoves :: Position -> Square -> [Square]				
+getPawnMoves position sq@(row, column) = map snd $ filter fst possibleMoves 
+	where 
+		ntm = nextToMove position 
+		ep = enPassant position
+		brd = board position
+		isValidKillForPawn s = isInBoard s && ((canBeKilldBy brd s ntm) || (Just s == ep))
+		isValidMoveForPawn s = not $ isOccupied brd s
+		nextSq = if ntm == White then (row + 1, column) else (row - 1, column)
+		nextNextSq = if ntm == White then (row + 2, column) else (row - 2, column)
+		leftKillSq = if ntm == White then (row + 1, column - 1) else (row - 1, column + 1)
+		rightKillSq = if ntm == White then (row + 1, column + 1) else (row - 1, column - 1)
+		possibleMoves = [(isValidMoveForPawn nextSq, nextSq), (isValidKillForPawn nextSq && isValidMoveForPawn nextNextSq, nextNextSq),
+				(isValidKillForPawn leftKillSq, leftKillSq), (isValidKillForPawn rightKillSq, rightKillSq)]
+			
+					
+		
+getCastlings :: Position -> [Move]	
+getCastlings position = 
+	let	ntm = nextToMove position in
+	let brd = board position in
+	let possibleCastling = 
+			case ntm of
+				White -> whiteCastling position
+				Black -> blackCastling position in
+	let  
+			castlingSquares White KingCastling = [(0,4), (0,5), (0,6)]
+			castlingSquares Black KingCastling = [(7,4), (7,5), (7,6)]
+			castlingSquares White QueenCastling = [(0,4), (0,3), (0,2)]
+			castlingSquares Black QueenCastling = [(7,4), (7,3), (7,2)] in	
+	let testCastling castling = all (not . isUnderAttackOf brd (inverseColor ntm)) $ castlingSquares ntm castling in
+	let resolveCastling c = case c of
+							BothCastling -> resolveCastling KingCastling ++ resolveCastling QueenCastling
+							NoCastling -> []
+							QueenCastling -> if testCastling QueenCastling then [CastleToQueenSide] else []
+							KingCastling -> if testCastling KingCastling then [CastleToKingSide] else [] in
+	resolveCastling possibleCastling
+			
 
 getMoves :: Position -> Square -> [Move]	
 getMoves position sq =
 	let mbPiece = getPieceOfBoard (board position) sq in
 	let	ntm = nextToMove position in
-	case mbPiece of 
-		Just piece@(Piece nextToMove Pawn) -> undefined
-		Just piece@(Piece nextToMove kind) -> undefined
-		otherwise -> []
+	let brd = board position in
+	if (isNothing mbPiece) then []
+	else
+		let piece = fromJust mbPiece in
+		let	makeMove toSq = Move sq toSq piece in		
+		case piece of 
+			(Piece nextToMove Pawn) -> map makeMove $ getPawnMoves position sq
+			(Piece nextToMove King) ->(map makeMove $ filterMoves brd ntm $ pieceMovesGenerator King sq) ++ (getCastlings position)
+			(Piece nextToMove kind) -> map makeMove $ filterMoves brd ntm $ pieceMovesGenerator kind sq
 
 
 getLegalMoves :: Position -> Square -> [Move]
@@ -125,6 +186,12 @@ getLegalMoves position sq = filter isLegalMove moves
 applyMove :: Position -> Move -> Position
 applyMove = undefined
 		
+isUnderAttackOf	:: Board -> Color -> Square -> Bool
+isUnderAttackOf board color sq = undefined
+		
 isCheck :: Board -> Color -> Bool
-isCheck = undefined
+isCheck brd color = isUnderAttackOf brd (inverseColor color) squereOfKing
+	where 
+		squereOfKing = find isKing allSquares
+		isKing s = Just (Piece color King) == getPieceOfBoard brd s
 
