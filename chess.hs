@@ -88,8 +88,8 @@ isInBoard (row, column) = and [row > 0, column > 0, row < 8, column < 8]
 isOccupied :: Board -> Square -> Bool
 isOccupied board  = isJust . (getPieceOfBoard board)
 
-canBeKilldBy :: Board -> Square -> Color -> Bool
-canBeKilldBy b sq killerColor = case getPieceOfBoard b sq of
+canBeCapturedBy :: Board -> Square -> Color -> Bool
+canBeCapturedBy b sq killerColor = case getPieceOfBoard b sq of
 									Just victimColor -> True
 									otherwise -> False
 								where victimColor = inverseColor killerColor
@@ -122,20 +122,20 @@ pieceMovesGenerator Queen sq = pieceMovesGenerator Bishop sq ++ pieceMovesGenera
 
 
 filterMoves :: Board -> Color -> [[Square]] -> [Square]
-filterMoves b colorToMove movesLists = moves ++ kills
-	where (moves, kills) = filterMovesAndKills b colorToMove movesLists
+filterMoves b colorToMove movesLists = moves ++ captures
+	where (moves, captures) = filterMovesAndCaptures b colorToMove movesLists
 
-filterMovesAndKills :: Board -> Color -> [[Square]] -> ([Square], [Square])
-filterMovesAndKills b colorToMove movesLists = foldl filterAndMerge ([],[]) movesLists
+filterMovesAndCaptures :: Board -> Color -> [[Square]] -> ([Square], [Square])
+filterMovesAndCaptures b colorToMove movesLists = foldl filterAndMerge ([],[]) movesLists
 	where 
-		filterAndMerge (moves1, kills1) squares = (moves1 ++ moves2, kills1 ++ kills2)
-			where (moves2, kills2) = filterMovesAndKills squares
-		filterMovesAndKills squares = (moves, kills)
+		filterAndMerge (moves1, captures1) squares = (moves1 ++ moves2, captures1 ++ captures2)
+			where (moves2, captures2) = filterMovesAndCaptures squares
+		filterMovesAndCaptures squares = (moves, captures)
 			where 
 				(moves, rest) = span isMoveToEmpty squares
-				(kills, _) = span isKill rest
+				(captures, _) = span isCapture rest
 				isMoveToEmpty s = isInBoard s && (not $ isOccupied b s)
-				isKill s = isInBoard s && (canBeKilldBy b s colorToMove)
+				isCapture s = isInBoard s && (canBeCapturedBy b s colorToMove)
 
 getPawnMoves :: Position -> Square -> [Square]				
 getPawnMoves position sq@(row, column) = map snd $ filter fst possibleMoves 
@@ -143,14 +143,14 @@ getPawnMoves position sq@(row, column) = map snd $ filter fst possibleMoves
 		ntm = nextToMove position 
 		ep = enPassant position
 		brd = board position
-		isValidKillForPawn s = isInBoard s && ((canBeKilldBy brd s ntm) || (Just s == ep))
+		isValidCaptureForPawn s = isInBoard s && ((canBeCapturedBy brd s ntm) || (Just s == ep))
 		isValidMoveForPawn s = not $ isOccupied brd s
 		nextSq = if ntm == White then (row + 1, column) else (row - 1, column)
 		nextNextSq = if ntm == White then (row + 2, column) else (row - 2, column)
-		leftKillSq = if ntm == White then (row + 1, column - 1) else (row - 1, column + 1)
-		rightKillSq = if ntm == White then (row + 1, column + 1) else (row - 1, column - 1)
-		possibleMoves = [(isValidMoveForPawn nextSq, nextSq), (isValidKillForPawn nextSq && isValidMoveForPawn nextNextSq, nextNextSq),
-				(isValidKillForPawn leftKillSq, leftKillSq), (isValidKillForPawn rightKillSq, rightKillSq)]
+		leftCaptureSq = if ntm == White then (row + 1, column - 1) else (row - 1, column + 1)
+		rightCaptureSq = if ntm == White then (row + 1, column + 1) else (row - 1, column - 1)
+		possibleMoves = [(isValidMoveForPawn nextSq, nextSq), (isValidMoveForPawn nextSq && isValidMoveForPawn nextNextSq, nextNextSq),
+				(isValidCaptureForPawn leftCaptureSq, leftCaptureSq), (isValidCaptureForPawn rightCaptureSq, rightCaptureSq)]
 			
 					
 		
