@@ -66,8 +66,21 @@ inverseColor Black = White
 getPieceOfLine :: Line -> Int -> Maybe Piece
 getPieceOfLine (Line pieces) n = pieces !! n
 
+setPieceOfLine :: Line -> Int -> Maybe Piece -> Line
+setPieceOfLine (Line pieces) index piece = Line (prefix ++ [piece] ++ postfix)
+	where	
+		prefix = take (index - 1) pieces
+		postfix = drop index pieces
+
 getPieceOfBoard :: Board -> Square -> Maybe Piece
 getPieceOfBoard (Board rows) (row, column) =  getPieceOfLine (rows !! row) column
+
+setPieceOfBoard :: Board -> Square -> Maybe Piece -> Board
+setPieceOfBoard (Board rows) (row, column) piece = Board (prefix ++ [setPieceOfLine line column piece] ++ postfix)
+	where	
+		prefix = take (row - 1) rows
+		postfix = drop row rows
+		line = rows !! row
 
 isInBoard :: Square -> Bool
 isInBoard (row, column) = and [row > 0, column > 0, row < 8, column < 8]
@@ -77,9 +90,10 @@ isOccupied board  = isJust . (getPieceOfBoard board)
 
 canBeKilldBy :: Board -> Square -> Color -> Bool
 canBeKilldBy b sq killerColor = case getPieceOfBoard b sq of
-						Just killerColor -> False
-						Nothing -> False
-						otherwise -> True
+									Just victimColor -> True
+									otherwise -> False
+								where victimColor = inverseColor killerColor
+								
 
 
 pieceMovesGenerator :: Kind -> Square -> [[Square]]
@@ -190,7 +204,10 @@ isUnderAttackOf	:: Board -> Color -> Square -> Bool
 isUnderAttackOf board color sq = undefined
 		
 isCheck :: Board -> Color -> Bool
-isCheck brd color = isUnderAttackOf brd (inverseColor color) squereOfKing
+isCheck brd color = 
+	case squereOfKing of
+		Just sq -> isUnderAttackOf brd (inverseColor color) sq
+		Nothing -> False
 	where 
 		squereOfKing = find isKing allSquares
 		isKing s = Just (Piece color King) == getPieceOfBoard brd s
