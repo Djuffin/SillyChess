@@ -51,7 +51,7 @@ emptyBoard = Board $ replicate 8 $ Line (replicate 8 Nothing)
 initialPosition = Position initialBoard White BothCastling BothCastling Nothing 0 1
 emptyPosition = Position emptyBoard White NoCastling NoCastling Nothing 0 1
 
-allSquares = [(i,j) | i <- [0,7], j <- [0..7]]
+allSquares = [(i,j) | i <- [0..7], j <- [0..7]]
 
 data Move = Move {
 				from :: Square,
@@ -172,7 +172,7 @@ filterMovesAndCaptures b colorToMove movesLists = foldl filterAndMerge ([],[]) m
 		filterMovesAndCaptures squares = (moves, captures)
 			where 
 				(moves, rest) = span isMoveToEmpty squares
-				(captures, _) = span isCapture rest
+				captures  = takeWhile isCapture $ take 1 rest
 				isMoveToEmpty s = isInBoard s && (not $ isOccupied b s)
 				isCapture s = isInBoard s && (canBeCapturedBy b s colorToMove)
 
@@ -183,7 +183,7 @@ getPawnMoves position sq@(row, column) = map snd $ filter fst possibleMoves
 		ep = enPassant position
 		brd = board position
 		isValidCaptureForPawn s = isInBoard s && ((canBeCapturedBy brd s ntm) || (Just s == ep))
-		isValidMoveForPawn s = not $ isOccupied brd s
+		isValidMoveForPawn s = isInBoard s && (not $ isOccupied brd s)
 		(nextSq, nextNextSq, leftCaptureSq, rightCaptureSq) = case ntm of
 				White -> ((row + 1, column), (row + 2, column), (row + 1, column - 1), (row + 1, column + 1))
 				Black -> ((row - 1, column), (row - 2, column), (row - 1, column + 1), (row - 1, column - 1))
@@ -193,25 +193,27 @@ getPawnMoves position sq@(row, column) = map snd $ filter fst possibleMoves
 					
 		
 getCastlings :: Position -> [Move]	
-getCastlings position = 
-	let	ntm = nextToMove position in
-	let brd = board position in
-	let possibleCastling = 
+getCastlings position = resolveCastling possibleCastling
+	where
+		ntm = nextToMove position 
+		brd = board position 
+		possibleCastling = 
 			case ntm of
 				White -> whiteCastling position
-				Black -> blackCastling position in
-	let  
-			castlingSquares White KingCastling = [(0,4), (0,5), (0,6)]
-			castlingSquares Black KingCastling = [(7,4), (7,5), (7,6)]
-			castlingSquares White QueenCastling = [(0,4), (0,3), (0,2)]
-			castlingSquares Black QueenCastling = [(7,4), (7,3), (7,2)] in	
-	let testCastling castling = all (not . isUnderAttackOf brd (inverseColor ntm)) $ castlingSquares ntm castling in
-	let resolveCastling c = case c of
+				Black -> blackCastling position 
+	 
+		castlingSquares White KingCastling = [(0,4), (0,5), (0,6)]
+		castlingSquares Black KingCastling = [(7,4), (7,5), (7,6)]
+		castlingSquares White QueenCastling = [(0,4), (0,3), (0,2), (0,1)]
+		castlingSquares Black QueenCastling = [(7,4), (7,3), (7,2), (7,1)] 
+		sqGoodForCastling sq = not (isOccupied brd sq || isUnderAttackOf brd (inverseColor ntm) sq)
+		testCastling castling = all sqGoodForCastling $ castlingSquares ntm castling 
+		resolveCastling c = case c of
 							BothCastling -> resolveCastling KingCastling ++ resolveCastling QueenCastling
 							NoCastling -> []
 							QueenCastling -> if testCastling QueenCastling then [CastleToQueenSide] else []
-							KingCastling -> if testCastling KingCastling then [CastleToKingSide] else [] in
-	resolveCastling possibleCastling
+							KingCastling -> if testCastling KingCastling then [CastleToKingSide] else [] 
+	
 			
 
 getMoves :: Position -> Square -> [Move]	

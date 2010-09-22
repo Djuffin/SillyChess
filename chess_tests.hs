@@ -9,7 +9,7 @@ import Data.List
 import Data.Char
 import Data.Maybe
 
-
+import FEN
 import Chess
 
 instance Arbitrary Color where
@@ -72,10 +72,16 @@ prop_get_piece = and [Just (Piece White Rook) == getPieceOfBoard initialBoard (0
 	Just (Piece White Pawn) == getPieceOfBoard initialBoard (1,3),
 	Nothing == getPieceOfBoard initialBoard (2,4)]
 	
-prop_get_moves_for_pown = 5 == length (map to $ getMoves initialPosition (6, 5))
-	--[(5,5), (4,5)] == (map to $ getMoves initialPosition (6, 5))
-	--and [ [(2,3), (3,3)] == (map to $ getMoves initialPosition (1, 3)),
-		  
+prop_check = all (\b -> isCheck b Black) boards
+	where 
+		fens = [
+				"6k1/8/8/3Q4/8/8/8/6K1 w - - 0 1", 
+				"6k1/5ppp/5N2/3Q4/8/8/8/6K1 w - - 0 1", 
+				"1R4k1/5ppp/8/8/8/8/8/6K1 w - - 0 1 ",
+				"6k1/6pp/5p2/8/2B5/8/8/6K1 w - - 0 1", 
+				"6k1/5Ppp/5p2/8/5B2/8/8/6K1 w - - 0 1"			
+					]
+		boards = map (board . fromJust . readFEN) fens
 	   
 	
 quickCheckArgs = Args (Just (mkStdGen 1, 1)) 300 1 300
@@ -83,5 +89,6 @@ quickCheckArgs = Args (Just (mkStdGen 1, 1)) 300 1 300
 main = do
 	quickCheckWith quickCheckArgs prop_get_piece
 	quickCheckWith quickCheckArgs prop_set_get_piece
-	--quickCheckWith quickCheckArgs prop_get_moves_for_pown
+	quickCheckWith quickCheckArgs prop_check
+
 
