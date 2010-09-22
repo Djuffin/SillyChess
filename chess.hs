@@ -62,43 +62,77 @@ data Move = Move {
 			| CastleToKingSide
 			| CastleToQueenSide
 
+-- show instances
+instance Show Move where
+	show CastleToKingSide = "O-O-O"
+	show CastleToQueenSide = "O-O"
+	show (Move from to piece promotion) = show piece ++ " " ++ showSquare from ++ "-" ++ showSquare to
+								where showSquare  (row, column) = (['a' .. 'h'] !! column) : (show $ 1 + row)
+
+instance Show Color where
+	show White = "w"
+	show Black = "b"
+	
+instance Show Kind where
+	show kind = fromJust $ lookup kind [(King, "K"), (Queen, "Q"), (Rook, "R"), (Bishop, "B"), (Knight, "N"), (Pawn, "P")] 
+	
+instance Show Piece where	
+	show (Piece White kind) = show kind
+	show (Piece Black kind) = map toLower $ show kind
+											   
+	
+instance Show Line where
+	show (Line pieces) = concat $ map showPiece pieces
+					where 
+						showPiece Nothing = "."
+						showPiece (Just p) = show p
+					
+
+instance Show Board where
+	show (Board lines) = intercalate "\n" $ map show $ reverse lines
+	
+instance Show Position where
+	show p = (show $ board p) ++ "\n " ++ (show $ nextToMove p) ++ " " ++ (show $ whiteCastling p)  ++ " " ++ (show $ blackCastling p) ++ 
+				" " ++ (showSquare $ enPassant p) ++ " " ++ (show $ halfMovesSinceAction p) ++ " " ++ (show $ fullMoves p)
+					where 
+						showSquare Nothing = "-"
+						showSquare (Just (row, column)) = (['a' .. 'h'] !! column) : (show $ 1 + column)			
 			
 ---------------- functions ----------------
 
 inverseColor White = Black
 inverseColor Black = White
 
+replaceByIndex :: [a] -> Int -> (a -> a) -> [a]		
+replaceByIndex [] _ _ = []
+replaceByIndex (x:xs) 0 f = (f x):xs
+replaceByIndex (x:xs) n f = x : replaceByIndex xs (n - 1) f
+
 getPieceOfLine :: Line -> Int -> Maybe Piece
 getPieceOfLine (Line pieces) n = pieces !! n
 
 setPieceOfLine :: Line -> Int -> Maybe Piece -> Line
-setPieceOfLine (Line pieces) index piece = Line (prefix ++ [piece] ++ postfix)
-	where	
-		prefix = take (index - 1) pieces
-		postfix = drop index pieces
-
+setPieceOfLine (Line pieces) index piece = Line $ replaceByIndex pieces index (\_ -> piece)
+	
 getPieceOfBoard :: Board -> Square -> Maybe Piece
 getPieceOfBoard (Board rows) (row, column) =  getPieceOfLine (rows !! row) column
 
 setPieceOfBoard :: Board -> Square -> Maybe Piece -> Board
-setPieceOfBoard (Board rows) (row, column) piece = Board (prefix ++ [setPieceOfLine line column piece] ++ postfix)
+setPieceOfBoard (Board rows) (row, column) piece = Board $ replaceByIndex rows row replace
 	where	
-		prefix = take (row - 1) rows
-		postfix = drop row rows
-		line = rows !! row
+		replace line = setPieceOfLine line column piece 
 
 isInBoard :: Square -> Bool
-isInBoard (row, column) = and [row > 0, column > 0, row < 8, column < 8]
+isInBoard (row, column) = and [row >= 0, column >= 0, row < 8, column < 8]
 
 isOccupied :: Board -> Square -> Bool
 isOccupied board  = isJust . (getPieceOfBoard board)
 
 canBeCapturedBy :: Board -> Square -> Color -> Bool
 canBeCapturedBy b sq killerColor = case getPieceOfBoard b sq of
-									Just victimColor -> True
+									Just (Piece color _) -> color == inverseColor killerColor
 									otherwise -> False
-								where victimColor = inverseColor killerColor
-								
+
 
 
 pieceMovesGenerator :: Kind -> Square -> [[Square]]
@@ -150,10 +184,9 @@ getPawnMoves position sq@(row, column) = map snd $ filter fst possibleMoves
 		brd = board position
 		isValidCaptureForPawn s = isInBoard s && ((canBeCapturedBy brd s ntm) || (Just s == ep))
 		isValidMoveForPawn s = not $ isOccupied brd s
-		nextSq = if ntm == White then (row + 1, column) else (row - 1, column)
-		nextNextSq = if ntm == White then (row + 2, column) else (row - 2, column)
-		leftCaptureSq = if ntm == White then (row + 1, column - 1) else (row - 1, column + 1)
-		rightCaptureSq = if ntm == White then (row + 1, column + 1) else (row - 1, column - 1)
+		(nextSq, nextNextSq, leftCaptureSq, rightCaptureSq) = case ntm of
+				White -> ((row + 1, column), (row + 2, column), (row + 1, column - 1), (row + 1, column + 1))
+				Black -> ((row - 1, column), (row - 2, column), (row - 1, column + 1), (row - 1, column - 1))
 		possibleMoves = [(isValidMoveForPawn nextSq, nextSq), (isValidMoveForPawn nextSq && isValidMoveForPawn nextNextSq, nextNextSq),
 				(isValidCaptureForPawn leftCaptureSq, leftCaptureSq), (isValidCaptureForPawn rightCaptureSq, rightCaptureSq)]
 			
@@ -187,16 +220,19 @@ getMoves position sq =
 	let	ntm = nextToMove position in
 	let brd = board position in
 	if (isNothing mbPiece) then []
-	else
+	else		
 		let piece = fromJust mbPiece in
+		if ntm /= color piece then [] 
+		else
 		let	makeMove toSq = Move sq toSq piece Nothing in		
 		let	makePawnMove toSq@(row,_) = 
 				if row == 0 || row == 7 then [(Move sq toSq piece (Just Queen)), (Move sq toSq piece (Just Rook)), (Move sq toSq piece (Just Bishop)), (Move sq toSq piece (Just Knight))] 
 										else [Move sq toSq piece Nothing] in
 		case piece of 
-			(Piece nextToMove Pawn) -> concatMap makePawnMove $ getPawnMoves position sq
-			(Piece nextToMove King) ->(map makeMove $ filterMoves brd ntm $ pieceMovesGenerator King sq) ++ (getCastlings position)
-			(Piece nextToMove kind) -> map makeMove $ filterMoves brd ntm $ pieceMovesGenerator kind sq
+			(Piece _ Pawn) -> concatMap makePawnMove $ getPawnMoves position sq
+			(Piece _ King) ->(map makeMove $ filterMoves brd ntm $ pieceMovesGenerator King sq) ++ (getCastlings position)
+			(Piece _ kind) -> map makeMove $ filterMoves brd ntm $ pieceMovesGenerator kind sq
+
 
 
 getLegalMoves :: Position -> Square -> [Move]
