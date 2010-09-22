@@ -52,7 +52,8 @@ allSquares = [(i,j) | i <- [0,7], j <- [0..7]]
 data Move = Move {
 				from :: Square,
 				to :: Square,
-				piece :: Piece
+				piece :: Piece,
+				promotion :: Maybe Kind
 			}
 			| CastleToKingSide
 			| CastleToQueenSide
@@ -184,9 +185,12 @@ getMoves position sq =
 	if (isNothing mbPiece) then []
 	else
 		let piece = fromJust mbPiece in
-		let	makeMove toSq = Move sq toSq piece in		
+		let	makeMove toSq = Move sq toSq piece Nothing in		
+		let	makePawnMove toSq@(row,_) = 
+				if row == 0 || row == 7 then [(Move sq toSq piece (Just Queen)), (Move sq toSq piece (Just Rook)), (Move sq toSq piece (Just Bishop)), (Move sq toSq piece (Just Knight))] 
+										else [Move sq toSq piece Nothing] in
 		case piece of 
-			(Piece nextToMove Pawn) -> map makeMove $ getPawnMoves position sq
+			(Piece nextToMove Pawn) -> concatMap makePawnMove $ getPawnMoves position sq
 			(Piece nextToMove King) ->(map makeMove $ filterMoves brd ntm $ pieceMovesGenerator King sq) ++ (getCastlings position)
 			(Piece nextToMove kind) -> map makeMove $ filterMoves brd ntm $ pieceMovesGenerator kind sq
 
@@ -198,7 +202,52 @@ getLegalMoves position sq = filter isLegalMove moves
 									isLegalMove move = not $ isCheck (board $ applyMove position move) (nextToMove position)
 		
 applyMove :: Position -> Move -> Position
-applyMove = undefined
+applyMove position (Move from to piece promotion) = Position newBoard2 ntm newWhiteCastling newBlackCastling newEnPassant halfMovesCount movesCount 
+	where 
+		ntm = inverseColor $ nextToMove position		
+		movesCount = fullMoves position + if ntm == White then 1 else 0
+		isPawnMove = Pawn == kind piece
+		isCapturing = not $ isNothing $ getPieceOfBoard (board position) to
+		halfMovesCount = if isPawnMove || isCapturing then 0 else 1 + halfMovesSinceAction position
+		newPiece = if isNothing promotion then piece else piece { kind = fromJust promotion }
+		newBoard1 = setPieceOfBoard (board position) from Nothing
+		newBoard2 = setPieceOfBoard newBoard1 to (Just newPiece)
+		newEnPassant = if isPawnMove && (abs (fst to - fst from) == 2) 
+							then Just ((fst to + fst from) `div` 2, snd to) 
+							else Nothing
+		newWhiteCastling = case (from, whiteCastling position) of
+								((0,4), _) -> NoCastling
+								((0,0), BothCastling) -> KingCastling
+								((0,0), QueenCastling) -> NoCastling
+								((0,7), BothCastling) -> QueenCastling
+								((0,7), QueenCastling) -> NoCastling
+								(_, c) -> c
+		newBlackCastling = case (from, blackCastling position) of
+								((7,4), _) -> NoCastling
+								((7,0), BothCastling) -> KingCastling
+								((7,0), QueenCastling) -> NoCastling
+								((7,7), BothCastling) -> QueenCastling
+								((7,7), QueenCastling) -> NoCastling
+								(_, c) -> c		
+
+applyMove position castle = Position newBoard ntm newWhiteCastling newBlackCastling newEnPassant halfMovesCount movesCount 
+	where 
+		ntm = inverseColor $ nextToMove position		
+		movesCount = fullMoves position + if ntm == White then 1 else 0
+		halfMovesCount = 1 + halfMovesSinceAction position
+		oldBoard = (board position)
+		(oldKingSq, newKingSq, oldRookSq, newRootSq) = case (nextToMove position, castle) of
+				(White, CastleToKingSide) -> ((0,4), (0,6), (0,7), (0,5))
+				(White, CastleToQueenSide) -> ((0,4), (0,2), (0,0), (0,3))
+				(Black, CastleToKingSide) -> ((7,4), (7,6), (7,7), (7,5))
+				(Black, CastleToQueenSide) -> ((7,4), (7,2), (7,0), (7,3))	
+		move from to b = setPieceOfBoard (setPieceOfBoard b to (getPieceOfBoard b from)) from Nothing
+		newBoard = move oldKingSq newKingSq $ move oldRookSq newRootSq $ oldBoard		
+		newWhiteCastling = if White == nextToMove position then NoCastling else whiteCastling position
+		newBlackCastling = if Black == nextToMove position then NoCastling else blackCastling position
+		newEnPassant = Nothing
+
+								
 		
 isUnderAttackOf	:: Board -> Color -> Square -> Bool
 isUnderAttackOf board color sq = undefined
