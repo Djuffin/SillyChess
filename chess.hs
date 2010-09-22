@@ -46,7 +46,11 @@ initialBoard = Board [
 					(Line [Just (Piece Black Rook), Just (Piece Black Knight), Just (Piece Black Bishop), Just (Piece Black Queen), Just (Piece Black King), Just (Piece Black Bishop), Just (Piece Black Knight), Just (Piece Black Rook)])
 				]
 
+emptyBoard = Board $ replicate 8 $ Line (replicate 8 Nothing)
+				
 initialPosition = Position initialBoard White BothCastling BothCastling Nothing 0 1
+emptyPosition = Position emptyBoard White NoCastling NoCastling Nothing 0 1
+
 allSquares = [(i,j) | i <- [0,7], j <- [0..7]]
 
 data Move = Move {
@@ -200,6 +204,12 @@ getLegalMoves position sq = filter isLegalMove moves
 								where 
 									moves = getMoves position sq
 									isLegalMove move = not $ isCheck (board $ applyMove position move) (nextToMove position)
+									
+getAllMoves :: Position -> [Move]
+getAllMoves p = concatMap (getMoves p) allSquares
+
+getAllLegalMoves :: Position -> [Move]
+getAllLegalMoves p = concatMap (getLegalMoves p) allSquares
 		
 applyMove :: Position -> Move -> Position
 applyMove position (Move from to piece promotion) = Position newBoard2 ntm newWhiteCastling newBlackCastling newEnPassant halfMovesCount movesCount 
@@ -250,7 +260,13 @@ applyMove position castle = Position newBoard ntm newWhiteCastling newBlackCastl
 								
 		
 isUnderAttackOf	:: Board -> Color -> Square -> Bool
-isUnderAttackOf board color sq = undefined
+isUnderAttackOf board enemyColor sq = any hitsTarget moves
+		where 
+			tmpBoard = setPieceOfBoard board sq $ Just $ Piece (inverseColor enemyColor) Pawn
+			tmpPosition = emptyPosition { board = tmpBoard, nextToMove = enemyColor }
+			moves = getAllMoves tmpPosition
+			hitsTarget (Move _ to _ _) = to == sq
+			hitsTarget _ = False
 		
 isCheck :: Board -> Color -> Bool
 isCheck brd color = 
