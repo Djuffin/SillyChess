@@ -80,15 +80,38 @@ prop_check = all (\b -> isCheck b Black) boards
 				"1R4k1/5ppp/8/8/8/8/8/6K1 w - - 0 1 ",
 				"6k1/6pp/5p2/8/2B5/8/8/6K1 w - - 0 1", 
 				"6k1/5Ppp/5p2/8/5B2/8/8/6K1 w - - 0 1"			
-					]
+				]
 		boards = map (board . fromJust . readFEN) fens
 	   
+ 	   
+prop_not_check = not $ any (\b -> isCheck b Black) boards
+	where 
+		fens = [
+				"5k2/5Ppp/5p2/8/5B2/8/8/6K1 w - - 0 1", 
+				"5kB1/2RQ1Ppp/3N1p2/8/5B2/8/8/6K1 w - - 0 1", 
+				"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+				"rnbqkbnr/8/8/8/8/8/8/RNBQKBNR w KQkq - 0 1 ", 
+				"rnbqkbnr/PPP1P1PP/8/8/8/8/8/RNBQKBNR w KQkq - 0 1 "			
+				]
+		boards = map (board . fromJust . readFEN) fens
+		
+prop_checkmate = all (\b -> isCheckmate b Black) boards
+	where 
+		fens = [
+				"1R4k1/5ppp/8/8/8/8/8/6K1 w - - 0 1 ",
+				"kr6/ppN5/8/8/8/8/8/6K1 w - - 0 1 ",
+				"1N6/5K2/7r/2pk4/R3P3/1q6/7B/8 w - - 0 1"
+				]
+		boards = map (board . fromJust . readFEN) fens		
 	
-quickCheckArgs = Args (Just (mkStdGen 1, 1)) 300 1 300
+argMany = Args (Just (mkStdGen 1, 1)) 300 1 300
+argOnce = Args (Just (mkStdGen 1, 1)) 1 1 1
 	  
 main = do
-	quickCheckWith quickCheckArgs prop_get_piece
-	quickCheckWith quickCheckArgs prop_set_get_piece
-	quickCheckWith quickCheckArgs prop_check
+	quickCheckWith argMany prop_get_piece
+	quickCheckWith argMany prop_set_get_piece
+	quickCheckWith argOnce prop_check
+	quickCheckWith argOnce prop_not_check
+	quickCheckWith argOnce prop_checkmate
 
 

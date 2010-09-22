@@ -306,6 +306,12 @@ isUnderAttackOf board enemyColor sq = any hitsTarget moves
 			hitsTarget (Move _ to _ _) = to == sq
 			hitsTarget _ = False
 		
+isCheckmate :: Board -> Color -> Bool
+isCheckmate brd color = isCheck brd color && nowhereToMove
+		where
+			position = Position brd color NoCastling NoCastling Nothing 0 1
+			nowhereToMove = null $ getAllLegalMoves position
+		
 isCheck :: Board -> Color -> Bool
 isCheck brd color = 
 	case squereOfKing of
