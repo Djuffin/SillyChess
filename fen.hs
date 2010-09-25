@@ -1,4 +1,4 @@
-module FEN (renderFEN, readFEN, readFENorError, p_position, p_squere) where
+module FEN (renderFEN, readFEN, readFENorError, p_position, p_squere, p_int) where
 
 import Data.List
 import Data.Char

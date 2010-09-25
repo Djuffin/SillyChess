@@ -54,7 +54,12 @@ p_cmd_quit = do
 				
 p_cmd_go = do
 				string "go"
-				return $ CmdGo Infinity
+				many $ char ' '
+				mbTimeout <- optionMaybe (string "movetime" >> (many $ char ' ') >> p_int)
+				return $ case mbTimeout of
+							Nothing -> CmdGo Infinity
+							Just timeout -> CmdGo $ MovetimeMsc timeout
+					
 	
 p_cmd_position :: CharParser ()	Command
 p_cmd_position = do
