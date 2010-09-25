@@ -61,6 +61,7 @@ data Move = Move {
 			}
 			| CastleToKingSide
 			| CastleToQueenSide
+			deriving (Eq)
 
 -- show instances
 instance Show Move where

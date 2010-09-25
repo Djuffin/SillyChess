@@ -10,10 +10,11 @@ import System.Random
 
 import Chess
 import FEN
+import UCI
 
-main = do
+main = uci
 	--putStrLn $ renderFEN $ initialPosition
-	step (mkStdGen 1) initialPosition
+	--step (mkStdGen 1) initialPosition
 
 
 step :: StdGen -> Position -> IO ()

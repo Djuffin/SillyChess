@@ -1,10 +1,9 @@
-module FEN (renderFEN, readFEN, readFENorError) where
+module FEN (renderFEN, readFEN, readFENorError, p_position, p_squere) where
 
 import Data.List
 import Data.Char
 import Data.Maybe
 
---import Text.Regex.Posix
 import Text.ParserCombinators.Parsec
 import Control.Monad
 
