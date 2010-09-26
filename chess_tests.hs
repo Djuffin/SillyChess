@@ -104,12 +104,6 @@ prop_checkmate = all (\b -> isCheckmate b Black) boards
 				]
 		boards = map (board . fromJust . readFEN) fens		
 
-prop_castling = all test fens
-	where 	test (fen, Nothing) = not (test fen (Just CastleToKingSide) || 
-			test (fen, (Just castling)) = castling `elem` (getAllLegelMoves $ fromJust $ readFEN fen)
-			fens = [
-						("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", Nothing)
-					]
 	
 argMany = Args (Just (mkStdGen 1, 1)) 300 1 300
 argOnce = Args (Just (mkStdGen 1, 1)) 1 1 1
