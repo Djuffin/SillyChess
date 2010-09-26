@@ -1,9 +1,13 @@
 module UCI where
 
+
 import Data.List
+import Data.IORef
+import System.Exit
 import Data.Char
 import Data.Maybe
 import System.IO
+import System.Random
 
 import Text.ParserCombinators.Parsec
 import Control.Monad
@@ -28,10 +32,32 @@ data Response = RspId String String
 			| RspReadyOk
 			| RspBestMove Move
 			| RspInfo String
-			deriving (Show)
+			| RspOption String 
+			
 
+---------------- show ------------------
+instance Show Response where
+		show RspUciOk = "uciok"
+		show RspReadyOk = "readyok"
+		show (RspInfo info) = "info " ++ info
+		show (RspId name value) = "id " ++ name ++ " " ++ value
+		show (RspBestMove move) = "bestmove " ++ renderShortMove move
+		show (RspOption text) = "option " ++ text
+		
+		
+renderShortMove :: Move -> String
+renderShortMove CastleToKingSide = "O-O-O"
+renderShortMove CastleToQueenSide = "O-O"
+renderShortMove (Move from to piece promotion) = showSquare from ++ showSquare to ++ (showPromotion promotion)
+								where 
+									showSquare  (row, column) = (['a' .. 'h'] !! column) : (show $ 1 + row)									
+									showPromotion (Just Queen) = "q"
+									showPromotion (Just Knight) = "n"
+									showPromotion (Just Rook) = "r"
+									showPromotion (Just Bishop) = "b"
+									showPromotion _ = ""
 	
------------------- parsers -----------	---
+------------------ parsers --------------
 p_cmd_uci = do
 				string "uci"
 				return CmdUci
@@ -92,12 +118,57 @@ parseCommand line = case parse p_cmd "" line of
 				Left _ -> Nothing
 				Right cmd -> Just cmd
 
+
+		
+					
+getBestMove :: Position -> IO Move
+getBestMove pos = do
+					rnd <- (randomIO :: IO Int)
+					let moves = getAllLegalMoves pos
+					let index = rnd `mod` (length moves)
+					let move = (moves !! index)
+					return move
+					
+				
 uci :: IO ()
 uci = do
+	hSetBuffering stdout NoBuffering
 	line <- getLine
+	appendFile "sillyLog.log" ("GUI>" ++ line ++ "\n")
+	lastPosition <- newIORef initialPosition
 	case parseCommand line of
-		Nothing -> putStrLn "no command"
-		Just cmd -> putStrLn $ show cmd
+		Nothing -> return ()
+		Just cmd -> do 
+						responses <- getResponse cmd
+						let output = intercalate "\n" $ map show $ responses
+						appendFile "sillyLog.log" ("Engine>" ++ output ++ "\n")
+						putStrLn output
+					    	where
+								getResponse CmdUci = return [(RspId "name" "sillyChess")
+										, (RspId "author" "EZ")
+										--, (RspOption "name NalimovPath type string default <empty>")
+										--, (RspOption "name NalimovCache type spin default 1 min 1 max 64")
+										--, (RspOption "name ClearHash type button")
+										--, (RspOption "name UseNalimov type check default false")										
+										--, (RspOption "name Hash type spin default 1 min 1 max 128")
+										--, (RspOption "name OwnBook type check default true")
+										, RspUciOk]
+								getResponse	CmdIsReady = return [RspReadyOk]
+								getResponse	CmdUciNewGame = return []
+								getResponse	CmdQuit = exitWith ExitSuccess
+								getResponse	CmdStop = return []
+								getResponse (CmdPosition pos moves)  = do
+										let finalPosition = foldl' applyMove pos moves
+										writeIORef lastPosition finalPosition
+										return []
+								getResponse (CmdGo so) = do
+										position <- readIORef lastPosition
+										move <- getBestMove position
+										return $ [RspInfo ("currmove " ++ renderShortMove move), RspBestMove move]
+					   
 	uci
+
+	
+
 	
 	
