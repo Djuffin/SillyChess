@@ -185,10 +185,11 @@ getPawnMoves position sq@(row, column) = map snd $ filter fst possibleMoves
 		brd = board position
 		isValidCaptureForPawn s = isInBoard s && ((canBeCapturedBy brd s ntm) || (Just s == ep))
 		isValidMoveForPawn s = isInBoard s && (not $ isOccupied brd s)
+		isValidLongMoveForPawn s@(r, _) = ((r == 6 && ntm == Black) || (r == 1 && ntm == White)) && isValidMoveForPawn s
 		(nextSq, nextNextSq, leftCaptureSq, rightCaptureSq) = case ntm of
 				White -> ((row + 1, column), (row + 2, column), (row + 1, column - 1), (row + 1, column + 1))
 				Black -> ((row - 1, column), (row - 2, column), (row - 1, column + 1), (row - 1, column - 1))
-		possibleMoves = [(isValidMoveForPawn nextSq, nextSq), (isValidMoveForPawn nextSq && isValidMoveForPawn nextNextSq, nextNextSq),
+		possibleMoves = [(isValidMoveForPawn nextSq, nextSq), (isValidMoveForPawn nextSq && isValidLongMoveForPawn nextNextSq, nextNextSq),
 				(isValidCaptureForPawn leftCaptureSq, leftCaptureSq), (isValidCaptureForPawn rightCaptureSq, rightCaptureSq)]
 			
 					

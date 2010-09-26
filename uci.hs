@@ -21,7 +21,7 @@ data SearchOption = MovetimeMsc Int | Infinity
 data Command = CmdUci 
 			| CmdIsReady 
 			| CmdUciNewGame 
-			| CmdPosition Position [Move] 
+			| CmdPosition Position [(Square, Square, Maybe Kind)] 
 			| CmdGo SearchOption
 			| CmdStop
 			| CmdQuit
@@ -98,17 +98,14 @@ p_cmd_position = do
 				moves <- option [] (string "moves" >> (many $ p_move pos))		
 				return $ CmdPosition pos moves
 
-p_move :: Position -> CharParser ()	Move
+p_move :: Position -> CharParser ()	(Square, Square, Maybe Kind)
 p_move pos = do	
 			optionMaybe $ char ' '
 			from <- liftM fromJust p_squere
 			to <- liftM fromJust p_squere
 			promotionCh <- optionMaybe $ oneOf ['q', 'r', 'b', 'n' ]
 			let promotion = lookup (fromMaybe 'X' promotionCh) [('q', Queen), ('r', Rook), ('b', Bishop), ('n', Knight)] 
-			let mbPiece = getPieceOfBoard (board pos) from
-			case mbPiece of
-				Just piece -> return $ Move from to piece promotion 
-				Nothing -> fail "illegal move"
+			return (from, to, promotion)
 			
 
 p_cmd = (try p_cmd_ucinewgame) <|> p_cmd_uci <|> p_cmd_isready <|> p_cmd_stop <|> p_cmd_quit <|> p_cmd_go <|> p_cmd_position	
@@ -159,12 +156,14 @@ uci = do
 					getResponse	CmdQuit = exitWith ExitSuccess
 					getResponse	CmdStop = return []
 					getResponse (CmdPosition pos moves)  = do
-							let finalPosition = foldl' applyMove pos moves										
+							let applyUCIMove pos (from, to, promotion) = applyMove pos $ Move from to piece promotion
+																		where piece = fromJust $ getPieceOfBoard (board pos) from
+							let finalPosition = foldl' applyUCIMove pos moves										
 							writeIORef lastPosition finalPosition
+							putStrLn $ "info " ++ (renderFEN finalPosition)
 							return []
 					getResponse (CmdGo so) = do
-							position <- readIORef lastPosition
-							putStrLn $ "info " ++ (renderFEN position)
+							position <- readIORef lastPosition							
 							move <- getBestMove position
 							return $ [RspInfo ("currmove " ++ renderShortMove move), RspBestMove move]
 				   
