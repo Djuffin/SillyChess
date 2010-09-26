@@ -132,39 +132,43 @@ getBestMove pos = do
 				
 uci :: IO ()
 uci = do
-	hSetBuffering stdout NoBuffering
-	line <- getLine
+	hSetBuffering stdout NoBuffering	
 	lastPosition <- newIORef initialPosition
-	case parseCommand line of
-		Nothing -> return ()
-		Just cmd -> do 
-						responses <- getResponse cmd
-						let output = intercalate "\n" $ map show $ responses
-						putStrLn output
-					    	where
-								getResponse CmdUci = return [(RspId "name" "sillyChess")
-										, (RspId "author" "EZ")
-										--, (RspOption "name NalimovPath type string default <empty>")
-										--, (RspOption "name NalimovCache type spin default 1 min 1 max 64")
-										--, (RspOption "name ClearHash type button")
-										--, (RspOption "name UseNalimov type check default false")										
-										--, (RspOption "name Hash type spin default 1 min 1 max 128")
-										--, (RspOption "name OwnBook type check default true")
-										, RspUciOk]
-								getResponse	CmdIsReady = return [RspReadyOk]
-								getResponse	CmdUciNewGame = return []
-								getResponse	CmdQuit = exitWith ExitSuccess
-								getResponse	CmdStop = return []
-								getResponse (CmdPosition pos moves)  = do
-										let finalPosition = foldl' applyMove pos moves
-										writeIORef lastPosition finalPosition
-										return []
-								getResponse (CmdGo so) = do
-										position <- readIORef lastPosition
-										move <- getBestMove position
-										return $ [RspInfo ("currmove " ++ renderShortMove move), RspBestMove move]
-					   
-	uci
+
+	let dialogue lastPosition = do
+				line <- getLine
+				case parseCommand line of
+					Nothing -> return ()
+					Just cmd -> do 
+									responses <- getResponse cmd
+									let output = intercalate "\n" $ map show $ responses
+									putStrLn output
+				dialogue lastPosition
+				where
+					getResponse CmdUci = return [(RspId "name" "sillyChess")
+							, (RspId "author" "EZ")
+							--, (RspOption "name NalimovPath type string default <empty>")
+							--, (RspOption "name NalimovCache type spin default 1 min 1 max 64")
+							--, (RspOption "name ClearHash type button")
+							--, (RspOption "name UseNalimov type check default false")										
+							--, (RspOption "name Hash type spin default 1 min 1 max 128")
+							--, (RspOption "name OwnBook type check default true")
+							, RspUciOk]
+					getResponse	CmdIsReady = return [RspReadyOk]
+					getResponse	CmdUciNewGame = return []
+					getResponse	CmdQuit = exitWith ExitSuccess
+					getResponse	CmdStop = return []
+					getResponse (CmdPosition pos moves)  = do
+							let finalPosition = foldl' applyMove pos moves										
+							writeIORef lastPosition finalPosition
+							return []
+					getResponse (CmdGo so) = do
+							position <- readIORef lastPosition
+							putStrLn $ "info " ++ (renderFEN position)
+							move <- getBestMove position
+							return $ [RspInfo ("currmove " ++ renderShortMove move), RspBestMove move]
+				   
+	dialogue lastPosition
 
 	
 
