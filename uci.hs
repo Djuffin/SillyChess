@@ -134,14 +134,12 @@ uci :: IO ()
 uci = do
 	hSetBuffering stdout NoBuffering
 	line <- getLine
-	appendFile "sillyLog.log" ("GUI>" ++ line ++ "\n")
 	lastPosition <- newIORef initialPosition
 	case parseCommand line of
 		Nothing -> return ()
 		Just cmd -> do 
 						responses <- getResponse cmd
 						let output = intercalate "\n" $ map show $ responses
-						appendFile "sillyLog.log" ("Engine>" ++ output ++ "\n")
 						putStrLn output
 					    	where
 								getResponse CmdUci = return [(RspId "name" "sillyChess")
