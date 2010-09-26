@@ -60,7 +60,7 @@ data Move = Move {
 				promotion :: Maybe Kind
 			}
 			| CastleToKingSide
-			| CastleToQueenSide
+			| CastleToQueenSide 
 			deriving (Eq)
 
 -- show instances
@@ -204,12 +204,15 @@ getCastlings position = resolveCastling possibleCastling
 				White -> whiteCastling position
 				Black -> blackCastling position 
 	 
-		castlingSquares White KingCastling = [(0,4), (0,5), (0,6)]
-		castlingSquares Black KingCastling = [(7,4), (7,5), (7,6)]
-		castlingSquares White QueenCastling = [(0,4), (0,3), (0,2), (0,1)]
-		castlingSquares Black QueenCastling = [(7,4), (7,3), (7,2), (7,1)] 
-		sqGoodForCastling sq = not (isOccupied brd sq || isUnderAttackOf brd (inverseColor ntm) sq)
-		testCastling castling = all sqGoodForCastling $ castlingSquares ntm castling 
+		castlingSquares White KingCastling = ((0,4), [(0,5), (0,6)], (0,7))
+		castlingSquares Black KingCastling = ((7,4), [(7,5), (7,6)], (7,7))
+		castlingSquares White QueenCastling = ((0,4), [(0,3), (0,2), (0,1)], (0,0))
+		castlingSquares Black QueenCastling = ((7,4), [(7,3), (7,2), (7,1)], (7,0))
+		sqGoodForCastlingPath sq = not (isOccupied brd sq || isUnderAttackOf brd (inverseColor ntm) sq)
+		sqGoodForKing sq = ((Just $ Piece ntm King) == getPieceOfBoard brd sq) && (not $ isUnderAttackOf brd (inverseColor ntm) sq)
+		sqGoodForRook sq = ((Just $ Piece ntm Rook) == getPieceOfBoard brd sq)
+		testCastling castling = (all sqGoodForCastlingPath path) && (sqGoodForKing kingSq) && (sqGoodForRook rookSq) 
+								where (kingSq, path, rookSq) = castlingSquares ntm castling 
 		resolveCastling c = case c of
 							BothCastling -> resolveCastling KingCastling ++ resolveCastling QueenCastling
 							NoCastling -> []

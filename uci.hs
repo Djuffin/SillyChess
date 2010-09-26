@@ -156,8 +156,14 @@ uci = do
 					getResponse	CmdQuit = exitWith ExitSuccess
 					getResponse	CmdStop = return []
 					getResponse (CmdPosition pos moves)  = do
-							let applyUCIMove pos (from, to, promotion) = applyMove pos $ Move from to piece promotion
-																		where piece = fromJust $ getPieceOfBoard (board pos) from
+							let applyUCIMove pos (from, to, promotion) = applyMove pos $ translateMove from to piece promotion
+													where 
+															piece = fromJust $ getPieceOfBoard (board pos) from
+															translateMove (0,4) (0,6) (Piece White King) Nothing = CastleToKingSide
+															translateMove (0,4) (0,2) (Piece White King) Nothing = CastleToQueenSide
+															translateMove (7,4) (7,6) (Piece Black King) Nothing = CastleToKingSide
+															translateMove (7,4) (7,2) (Piece Black King) Nothing = CastleToQueenSide															
+															translateMove from to piece promotion = Move from to piece promotion
 							let finalPosition = foldl' applyUCIMove pos moves										
 							writeIORef lastPosition finalPosition
 							putStrLn $ "info " ++ (renderFEN finalPosition)
