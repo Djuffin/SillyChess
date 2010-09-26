@@ -142,15 +142,7 @@ uci = do
 									putStrLn output
 				dialogue lastPosition
 				where
-					getResponse CmdUci = return [(RspId "name" "sillyChess")
-							, (RspId "author" "EZ")
-							--, (RspOption "name NalimovPath type string default <empty>")
-							--, (RspOption "name NalimovCache type spin default 1 min 1 max 64")
-							--, (RspOption "name ClearHash type button")
-							--, (RspOption "name UseNalimov type check default false")										
-							--, (RspOption "name Hash type spin default 1 min 1 max 128")
-							--, (RspOption "name OwnBook type check default true")
-							, RspUciOk]
+					getResponse CmdUci = return [(RspId "name" "sillyChess"), (RspId "author" "EZ"), RspUciOk]
 					getResponse	CmdIsReady = return [RspReadyOk]
 					getResponse	CmdUciNewGame = return []
 					getResponse	CmdQuit = exitWith ExitSuccess
