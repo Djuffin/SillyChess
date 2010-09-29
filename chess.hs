@@ -124,7 +124,7 @@ setPieceOfBoard (Board rows) (row, column) piece = Board $ replaceByIndex rows r
 		replace line = setPieceOfLine line column piece 
 
 isInBoard :: Square -> Bool
-isInBoard (row, column) = and [row >= 0, column >= 0, row < 8, column < 8]
+isInBoard (row, column) = row >= 0 && column >= 0 && row < 8 && column < 8
 
 isOccupied :: Board -> Square -> Bool
 isOccupied board  = isJust . (getPieceOfBoard board)

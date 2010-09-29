@@ -14,6 +14,7 @@ import Control.Monad
 
 import FEN
 import Chess
+import AI
 
 data SearchOption = MovetimeMsc Int | Infinity
 					deriving (Show)
@@ -118,13 +119,7 @@ parseCommand line = case parse p_cmd "" line of
 
 		
 					
-getBestMove :: Position -> IO Move
-getBestMove pos = do
-					rnd <- (randomIO :: IO Int)
-					let moves = getAllLegalMoves pos
-					let index = rnd `mod` (length moves)
-					let move = (moves !! index)
-					return move
+
 					
 				
 uci :: IO ()
