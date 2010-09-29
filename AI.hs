@@ -16,7 +16,7 @@ getBestMove :: Position -> IO Move
 getBestMove pos = do
 					rnd <- (randomIO :: IO Int)
 					let moves = getAllLegalMoves pos
-					let evaluateMove move =  evaluateDeep 2 $ applyMove pos move
+					let evaluateMove move =  evaluateDeep 3 $ applyMove pos move
 					let movesWithValue = zip moves $ parMap rwhnf evaluateMove moves
 					let criterion = if nextToMove pos == White then maximumBy else minimumBy
 					let move = fst $ criterion (\m1 m2 -> compare (snd m1) (snd m2)) movesWithValue
@@ -25,13 +25,11 @@ getBestMove pos = do
 evaluateDeep :: Int -> Position -> Int
 evaluateDeep depth position = 
 		let moves = getAllLegalMoves position in
-		let evaluator = if depth == 0 then evaluate else evaluateDeep (depth - 1) in 
 		let criterion = if nextToMove position == White then maximum else minimum in
-		let values = map (evaluator . applyMove position) moves in
-		if null moves then evaluate position else criterion values
-		
-					
-					
+		let values = map (evaluateDeep (depth - 1) . applyMove position) moves in
+		if depth == 0 || null moves then evaluate position
+		else criterion values	
+
 
 -------
 getAllPiecesOfBoard :: Board -> Color -> [Piece]

@@ -13,9 +13,10 @@ import FEN
 import UCI
 import AI
 
-main = do 
-		move <- getBestMove initialPosition
-		putStrLn $ show move
+main = uci
+--		do 
+--		move <- getBestMove initialPosition
+--		putStrLn $ show move
 
 			
 								
