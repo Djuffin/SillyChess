@@ -4,8 +4,11 @@ import Data.List
 import Data.Char
 import Data.Maybe
 
+import Data.Map (Map)
+import qualified Data.Map as Map
+
 data Kind = King | Queen | Rook | Bishop | Knight | Pawn
-                 deriving (Eq)
+                 deriving (Eq, Ord)
 				 
 data Color = White | Black
                  deriving (Eq)
@@ -205,6 +208,13 @@ pieceMovesGenerator Rook (row, column) = [
 	
 pieceMovesGenerator Queen sq = pieceMovesGenerator Bishop sq ++ pieceMovesGenerator Rook sq
 
+pieceMovesGeneratorWithMem :: Kind -> Square -> [[Square]]
+pieceMovesGeneratorWithMem kind sq = allMovesGenerators Map.! (kind, sq)
+	where
+		allMovesGenerators = Map.fromList $ map (\key@(k, s) -> (key, pieceMovesGenerator k s)) allKindsAndSquares
+		allKindsAndSquares = [(k, s) | k <- [King, Knight, Bishop, Rook, Queen], s <- allSquares] 
+
+
 extractValidSquares :: Board -> Color -> [[Square]] -> [Square]
 extractValidSquares b colorToMove movesLists = foldl' filterAndMerge [] movesLists
 	where 
@@ -278,8 +288,8 @@ getMoves position sq =
 										else [Move sq toSq piece Nothing] in
 		case piece of 
 			(Piece _ Pawn) -> concatMap makePawnMove $ getPawnMoves position sq
-			(Piece _ King) ->(map makeMove $ extractValidSquares brd ntm $ pieceMovesGenerator King sq) ++ (getCastlings position)
-			(Piece _ kind) -> map makeMove $ extractValidSquares brd ntm $ pieceMovesGenerator kind sq
+			(Piece _ King) ->(map makeMove $ extractValidSquares brd ntm $ pieceMovesGeneratorWithMem King sq) ++ (getCastlings position)
+			(Piece _ kind) -> map makeMove $ extractValidSquares brd ntm $ pieceMovesGeneratorWithMem kind sq
 
 
 
