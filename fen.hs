@@ -12,11 +12,11 @@ import Chess
 
 --Forsyth–Edwards Notation
 renderFEN :: Position -> String
-renderFEN (Position (Board lines) nextToMove whiteCastling blackCastling enPassant halfMovesSinceAction fullMoves) = 
+renderFEN (Position board nextToMove whiteCastling blackCastling enPassant halfMovesSinceAction fullMoves) = 
 			piecesStr ++ " " ++ (renderNextToMove nextToMove)++ " " ++ (renderCastlings whiteCastling blackCastling) ++ " " ++ (renderEnPass enPassant) ++ " " ++ halfMoveStr ++ " " ++ movesStr
 			where
-				piecesStr = intercalate "/" $ map renderLine $ reverse lines
-				renderLine (Line pieces) = foldEmptySqueres $ map renderPiece pieces
+				piecesStr = intercalate "/" $ map renderLine $ reverse $ boardToList board
+				renderLine line = foldEmptySqueres $ map renderPiece $ lineToList line
 				foldEmptySqueres (d:'1':xs) | isDigit d = (foldEmptySqueres $ (succ d):xs)
 				foldEmptySqueres (x:xs) = x:(foldEmptySqueres xs)
 				foldEmptySqueres [] = []
@@ -59,7 +59,7 @@ p_position = do
 				halfMove <- p_int
 				char ' '
 				moves <- p_int
-				return (Position (Board $ reverse lines) nextToMove wc bc enPassant halfMove moves)
+				return (Position (boardFromList $ reverse lines) nextToMove wc bc enPassant halfMove moves)
 
 p_squere :: CharParser () (Maybe Square)
 p_squere = do			
@@ -95,7 +95,7 @@ p_line :: CharParser () Chess.Line
 p_line = do 
 			pieces <- many p_piece 
 			optional $ char '/'
-			return (Chess.Line $ concat pieces)		
+			return (lineFromList $ concat pieces)		
 			
 p_piece :: CharParser () [(Maybe Chess.Piece)]
 p_piece = do 

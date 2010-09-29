@@ -15,10 +15,10 @@ data Piece = Piece { color :: Color, kind :: Kind }
 				
 type Square	= (Int, Int) -- row, column (from zero)
 
-data Line = Line [Maybe Piece]				
+data Line = Line (Maybe Piece, Maybe Piece, Maybe Piece, Maybe Piece, Maybe Piece, Maybe Piece, Maybe Piece, Maybe Piece)
 				deriving (Eq)
 
-data Board = Board [Line] -- rows from 1 to 8
+data Board = Board (Line, Line, Line, Line, Line, Line, Line, Line)
 				deriving (Eq)
 
 data Castling = NoCastling | QueenCastling | KingCastling | BothCastling
@@ -35,19 +35,20 @@ data Position = Position {
 				}
 				deriving (Eq)
 
-initialBoard = Board [
-					(Line [Just (Piece White Rook), Just (Piece White Knight), Just (Piece White Bishop), Just (Piece White Queen), Just (Piece White King), Just (Piece White Bishop), Just (Piece White Knight), Just (Piece White Rook)]),
-					(Line [Just (Piece White Pawn), Just (Piece White Pawn), Just (Piece White Pawn), Just (Piece White Pawn), Just (Piece White Pawn), Just (Piece White Pawn), Just (Piece White Pawn), Just (Piece White Pawn)]),
-					(Line [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]),
-					(Line [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]),
-					(Line [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]),
-					(Line [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]),
-					(Line [Just (Piece Black Pawn), Just (Piece Black Pawn), Just (Piece Black Pawn), Just (Piece Black Pawn), Just (Piece Black Pawn), Just (Piece Black Pawn), Just (Piece Black Pawn), Just (Piece Black Pawn)]),
-					(Line [Just (Piece Black Rook), Just (Piece Black Knight), Just (Piece Black Bishop), Just (Piece Black Queen), Just (Piece Black King), Just (Piece Black Bishop), Just (Piece Black Knight), Just (Piece Black Rook)])
-				]
-
-emptyBoard = Board $ replicate 8 $ Line (replicate 8 Nothing)
+emptyLine = Line (Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing)
+emptyBoard = Board (emptyLine, emptyLine, emptyLine, emptyLine, emptyLine, emptyLine, emptyLine, emptyLine)
 				
+initialBoard = Board (
+					(Line (Just (Piece White Rook), Just (Piece White Knight), Just (Piece White Bishop), Just (Piece White Queen), Just (Piece White King), Just (Piece White Bishop), Just (Piece White Knight), Just (Piece White Rook))),
+					(Line (Just (Piece White Pawn), Just (Piece White Pawn), Just (Piece White Pawn), Just (Piece White Pawn), Just (Piece White Pawn), Just (Piece White Pawn), Just (Piece White Pawn), Just (Piece White Pawn))),
+					emptyLine,
+					emptyLine,
+					emptyLine,
+					emptyLine,
+					(Line (Just (Piece Black Pawn), Just (Piece Black Pawn), Just (Piece Black Pawn), Just (Piece Black Pawn), Just (Piece Black Pawn), Just (Piece Black Pawn), Just (Piece Black Pawn), Just (Piece Black Pawn))),
+					(Line (Just (Piece Black Rook), Just (Piece Black Knight), Just (Piece Black Bishop), Just (Piece Black Queen), Just (Piece Black King), Just (Piece Black Bishop), Just (Piece Black Knight), Just (Piece Black Rook)))
+				)
+		
 initialPosition = Position initialBoard White BothCastling BothCastling Nothing 0 1
 emptyPosition = Position emptyBoard White NoCastling NoCastling Nothing 0 1
 
@@ -83,14 +84,14 @@ instance Show Piece where
 											   
 	
 instance Show Line where
-	show (Line pieces) = concat $ map showPiece pieces
+	show line = concat $ map showPiece $ lineToList line
 					where 
 						showPiece Nothing = "."
 						showPiece (Just p) = show p
 					
 
 instance Show Board where
-	show (Board lines) = intercalate "\n" $ map show $ reverse lines
+	show board = intercalate "\n" $ map show $ reverse $ boardToList board
 	
 instance Show Position where
 	show p = (show $ board p) ++ "\n " ++ (show $ nextToMove p) ++ " " ++ (show $ whiteCastling p)  ++ " " ++ (show $ blackCastling p) ++ 
@@ -104,24 +105,68 @@ instance Show Position where
 inverseColor White = Black
 inverseColor Black = White
 
-replaceByIndex :: [a] -> Int -> (a -> a) -> [a]		
-replaceByIndex [] _ _ = []
-replaceByIndex (x:xs) 0 f = (f x):xs
-replaceByIndex (x:xs) n f = x : replaceByIndex xs (n - 1) f
+lineFromList :: [Maybe Piece] -> Line
+lineFromList (p0:(p1:(p2:(p3:(p4:(p5:(p6:(p7:[])))))))) = Line (p0, p1, p2, p3, p4, p5, p6, p7)
+
+lineToList :: Line -> [Maybe Piece]
+lineToList (Line (p0, p1, p2, p3, p4, p5, p6, p7)) = [p0, p1, p2, p3, p4, p5, p6, p7]
+
+boardFromList :: [Line] -> Board
+boardFromList (l0:(l1:(l2:(l3:(l4:(l5:(l6:(l7:[])))))))) = Board (l0, l1, l2, l3, l4, l5, l6, l7)
+
+boardToList :: Board -> [Line]
+boardToList (Board (l0, l1, l2, l3, l4, l5, l6, l7)) = [l0, l1, l2, l3, l4, l5, l6, l7]
 
 getPieceOfLine :: Line -> Int -> Maybe Piece
-getPieceOfLine (Line pieces) n = pieces !! n
+getPieceOfLine (Line (s0, s1, s2, s3, s4, s5, s6, s7)) 0 = s0
+getPieceOfLine (Line (s0, s1, s2, s3, s4, s5, s6, s7)) 1 = s1
+getPieceOfLine (Line (s0, s1, s2, s3, s4, s5, s6, s7)) 2 = s2
+getPieceOfLine (Line (s0, s1, s2, s3, s4, s5, s6, s7)) 3 = s3
+getPieceOfLine (Line (s0, s1, s2, s3, s4, s5, s6, s7)) 4 = s4
+getPieceOfLine (Line (s0, s1, s2, s3, s4, s5, s6, s7)) 5 = s5
+getPieceOfLine (Line (s0, s1, s2, s3, s4, s5, s6, s7)) 6 = s6
+getPieceOfLine (Line (s0, s1, s2, s3, s4, s5, s6, s7)) 7 = s7
 
 setPieceOfLine :: Line -> Int -> Maybe Piece -> Line
-setPieceOfLine (Line pieces) index piece = Line $ replaceByIndex pieces index (\_ -> piece)
+setPieceOfLine (Line (s0, s1, s2, s3, s4, s5, s6, s7)) 0 p = Line (p, s1, s2, s3, s4, s5, s6, s7)
+setPieceOfLine (Line (s0, s1, s2, s3, s4, s5, s6, s7)) 1 p = Line (s0, p, s2, s3, s4, s5, s6, s7)
+setPieceOfLine (Line (s0, s1, s2, s3, s4, s5, s6, s7)) 2 p = Line (s0, s1, p, s3, s4, s5, s6, s7)
+setPieceOfLine (Line (s0, s1, s2, s3, s4, s5, s6, s7)) 3 p = Line (s0, s1, s2, p, s4, s5, s6, s7)
+setPieceOfLine (Line (s0, s1, s2, s3, s4, s5, s6, s7)) 4 p = Line (s0, s1, s2, s3, p, s5, s6, s7)
+setPieceOfLine (Line (s0, s1, s2, s3, s4, s5, s6, s7)) 5 p = Line (s0, s1, s2, s3, s4, p, s6, s7)
+setPieceOfLine (Line (s0, s1, s2, s3, s4, s5, s6, s7)) 6 p = Line (s0, s1, s2, s3, s4, s5, p, s7)
+setPieceOfLine (Line (s0, s1, s2, s3, s4, s5, s6, s7)) 7 p = Line (s0, s1, s2, s3, s4, s5, s6, p)
 	
 getPieceOfBoard :: Board -> Square -> Maybe Piece
-getPieceOfBoard (Board rows) (row, column) =  getPieceOfLine (rows !! row) column
+getPieceOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) (0, n) = getPieceOfLine l0 n
+getPieceOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) (1, n) = getPieceOfLine l1 n
+getPieceOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) (2, n) = getPieceOfLine l2 n
+getPieceOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) (3, n) = getPieceOfLine l3 n
+getPieceOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) (4, n) = getPieceOfLine l4 n
+getPieceOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) (5, n) = getPieceOfLine l5 n
+getPieceOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) (6, n) = getPieceOfLine l6 n
+getPieceOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) (7, n) = getPieceOfLine l7 n
 
 setPieceOfBoard :: Board -> Square -> Maybe Piece -> Board
-setPieceOfBoard (Board rows) (row, column) piece = Board $ replaceByIndex rows row replace
+setPieceOfBoard board (row, column) piece = setLineOfBoard board row newLine
 	where	
-		replace line = setPieceOfLine line column piece 
+		newLine = setPieceOfLine (getLineOfBoard board row) column piece
+		setLineOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) 0 p = Board (p, l1, l2, l3, l4, l5, l6, l7)
+		setLineOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) 1 p = Board (l0, p, l2, l3, l4, l5, l6, l7)
+		setLineOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) 2 p = Board (l0, l1, p, l3, l4, l5, l6, l7)
+		setLineOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) 3 p = Board (l0, l1, l2, p, l4, l5, l6, l7)
+		setLineOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) 4 p = Board (l0, l1, l2, l3, p, l5, l6, l7)
+		setLineOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) 5 p = Board (l0, l1, l2, l3, l4, p, l6, l7)
+		setLineOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) 6 p = Board (l0, l1, l2, l3, l4, l5, p, l7)
+		setLineOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) 7 p = Board (l0, l1, l2, l3, l4, l5, l6, p)
+		getLineOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) 0  = l0
+		getLineOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) 1  = l1
+		getLineOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) 2  = l2
+		getLineOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) 3  = l3
+		getLineOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) 4  = l4
+		getLineOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) 5  = l5
+		getLineOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) 6  = l6
+		getLineOfBoard (Board (l0, l1, l2, l3, l4, l5, l6, l7)) 7  = l7
 
 isInBoard :: Square -> Bool
 isInBoard (row, column) = row >= 0 && column >= 0 && row < 8 && column < 8
