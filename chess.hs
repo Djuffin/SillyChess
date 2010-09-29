@@ -15,10 +15,10 @@ data Piece = Piece { color :: Color, kind :: Kind }
 				
 type Square	= (Int, Int) -- row, column (from zero)
 
-data Line = Line (Maybe Piece, Maybe Piece, Maybe Piece, Maybe Piece, Maybe Piece, Maybe Piece, Maybe Piece, Maybe Piece)
+newtype Line = Line (Maybe Piece, Maybe Piece, Maybe Piece, Maybe Piece, Maybe Piece, Maybe Piece, Maybe Piece, Maybe Piece)
 				deriving (Eq)
 
-data Board = Board (Line, Line, Line, Line, Line, Line, Line, Line)
+newtype Board = Board (Line, Line, Line, Line, Line, Line, Line, Line)
 				deriving (Eq)
 
 data Castling = NoCastling | QueenCastling | KingCastling | BothCastling
@@ -205,22 +205,18 @@ pieceMovesGenerator Rook (row, column) = [
 	
 pieceMovesGenerator Queen sq = pieceMovesGenerator Bishop sq ++ pieceMovesGenerator Rook sq
 
-
-filterMoves :: Board -> Color -> [[Square]] -> [Square]
-filterMoves b colorToMove movesLists = moves ++ captures
-	where (moves, captures) = filterMovesAndCaptures b colorToMove movesLists
-
-filterMovesAndCaptures :: Board -> Color -> [[Square]] -> ([Square], [Square])
-filterMovesAndCaptures b colorToMove movesLists = foldl filterAndMerge ([],[]) movesLists
+extractValidSquares :: Board -> Color -> [[Square]] -> [Square]
+extractValidSquares b colorToMove movesLists = foldl' filterAndMerge [] movesLists
 	where 
-		filterAndMerge (moves1, captures1) squares = (moves1 ++ moves2, captures1 ++ captures2)
-			where (moves2, captures2) = filterMovesAndCaptures squares
-		filterMovesAndCaptures squares = (moves, captures)
-			where 
-				(moves, rest) = span isMoveToEmpty squares
-				captures  = takeWhile isCapture $ take 1 rest
-				isMoveToEmpty s = isInBoard s && (not $ isOccupied b s)
-				isCapture s = isInBoard s && (canBeCapturedBy b s colorToMove)
+		filterAndMerge oldMoves squares = oldMoves ++ moves ++ captures
+			where (moves, captures) = filterMovesAndCaptures ([],[]) squares
+		filterMovesAndCaptures mc [] = mc
+		filterMovesAndCaptures (moves, _) (sq:squares) = 
+			if not $ isInBoard sq then (moves, [])
+			else if not $ isOccupied b sq then filterMovesAndCaptures (sq:moves, []) squares
+			else if canBeCapturedBy b sq colorToMove then (moves, [sq])
+			else (moves, [])
+
 
 getPawnMoves :: Position -> Square -> [Square]				
 getPawnMoves position sq@(row, column) = map snd $ filter fst possibleMoves 
@@ -282,8 +278,8 @@ getMoves position sq =
 										else [Move sq toSq piece Nothing] in
 		case piece of 
 			(Piece _ Pawn) -> concatMap makePawnMove $ getPawnMoves position sq
-			(Piece _ King) ->(map makeMove $ filterMoves brd ntm $ pieceMovesGenerator King sq) ++ (getCastlings position)
-			(Piece _ kind) -> map makeMove $ filterMoves brd ntm $ pieceMovesGenerator kind sq
+			(Piece _ King) ->(map makeMove $ extractValidSquares brd ntm $ pieceMovesGenerator King sq) ++ (getCastlings position)
+			(Piece _ kind) -> map makeMove $ extractValidSquares brd ntm $ pieceMovesGenerator kind sq
 
 
 

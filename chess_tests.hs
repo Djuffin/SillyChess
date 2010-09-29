@@ -30,12 +30,12 @@ instance Arbitrary Piece where
 instance Arbitrary Line where
 	arbitrary = do 
 		pieces <- vectorOf 8 (arbitrary :: Gen (Maybe Piece))
-		return $ Line pieces
+		return $ lineFromList pieces
 		
 instance Arbitrary Board where 
 	arbitrary = do
 		lines <- vectorOf 8 (arbitrary :: Gen Line)
-		return $ Board lines
+		return $ boardFromList lines
 		
 instance Arbitrary Position where 
 	arbitrary = do		
