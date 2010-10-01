@@ -11,21 +11,21 @@ data Kind = King | Queen | Rook | Bishop | Knight | Pawn
                  deriving (Eq, Ord)
 				 
 data Color = White | Black
-                 deriving (Eq)
+                 deriving (Eq, Ord)
 				 
 data Piece = Piece { color :: Color, kind :: Kind }
-				deriving (Eq)
+				deriving (Eq, Ord)
 				
 type Square	= (Int, Int) -- row, column (from zero)
 
 newtype Line = Line (Maybe Piece, Maybe Piece, Maybe Piece, Maybe Piece, Maybe Piece, Maybe Piece, Maybe Piece, Maybe Piece)
-				deriving (Eq)
+				deriving (Eq, Ord)
 
 newtype Board = Board (Line, Line, Line, Line, Line, Line, Line, Line)
-				deriving (Eq)
+				deriving (Eq, Ord)
 
 data Castling = NoCastling | QueenCastling | KingCastling | BothCastling
-				deriving (Eq, Show)
+				deriving (Eq, Show, Ord)
 
 data Position = Position {
 					board :: Board,
@@ -67,7 +67,15 @@ data Move = Move {
 			| CastleToQueenSide 
 			deriving (Eq)
 
--- show instances
+-- instances
+instance Ord Position where
+	compare p1 p2 = cmp (board p1) (board p2) $ cmp (nextToMove p1) (nextToMove p2) $ cmp (whiteCastling p1) (whiteCastling p2) 
+						$ cmp (blackCastling p1) (blackCastling p2) $ cmp (enPassant p1) (enPassant p2) EQ
+		where 
+			cmp a b rest = 
+				let result = compare a b in
+				if result == EQ then rest else result
+
 instance Show Move where
 	show CastleToKingSide = "O-O-O"
 	show CastleToQueenSide = "O-O"
