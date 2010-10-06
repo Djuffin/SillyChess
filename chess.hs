@@ -77,8 +77,8 @@ instance Ord Position where
 				if result == EQ then rest else result
 
 instance Show Move where
-	show CastleToKingSide = "O-O-O"
-	show CastleToQueenSide = "O-O"
+	show CastleToKingSide = "O-O"
+	show CastleToQueenSide = "O-O-O"
 	show (Move from to piece promotion) = show piece ++ " " ++ showSquare from ++ "-" ++ showSquare to
 								where showSquare  (row, column) = (['a' .. 'h'] !! column) : (show $ 1 + row)
 
