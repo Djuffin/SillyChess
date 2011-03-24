@@ -17,7 +17,7 @@ getBestMove pos = do
 					rnd <- (randomIO :: IO Int)
 					let moves = getAllLegalMoves pos
 					let evaluateMove move =  evaluateDeep 3 $ applyMove pos move
-					let movesWithValue = zip moves $ parMap rwhnf evaluateMove moves
+					let movesWithValue = zip moves $ parMap rseq evaluateMove moves
 					let criterion = if nextToMove pos == White then maximumBy else minimumBy
 					let move = fst $ criterion (\m1 m2 -> compare (snd m1) (snd m2)) movesWithValue
 					return move

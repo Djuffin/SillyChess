@@ -105,8 +105,8 @@ prop_checkmate = all (\b -> isCheckmate b Black) boards
 		boards = map (board . fromJust . readFEN) fens		
 
 	
-argMany = Args (Just (mkStdGen 1, 1)) 300 1 300
-argOnce = Args (Just (mkStdGen 1, 1)) 1 1 1
+argMany = Args (Just (mkStdGen 1, 1)) 300 1 300 False
+argOnce = Args (Just (mkStdGen 1, 1)) 1 1 1 False
 	  
 main = do
 	quickCheckWith argMany prop_get_piece
