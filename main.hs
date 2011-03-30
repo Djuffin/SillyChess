@@ -14,10 +14,10 @@ import UCI
 import AI
 
 main = uci
---		do 
---		move <- getBestMove initialPosition
---		putStrLn $ show move
+--      do 
+--      move <- getBestMove initialPosition
+--      putStrLn $ show move
 
-			
-								
-	
+            
+                                
+    
